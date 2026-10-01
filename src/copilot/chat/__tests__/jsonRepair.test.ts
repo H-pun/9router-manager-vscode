@@ -1,0 +1,162 @@
+import { test, describe } from 'node:test';
+import assert from 'node:assert/strict';
+import { balanceStructures, repairInvalidEscapes, tryRepairJson } from '../jsonRepair';
+
+describe('balanceStructures', () => {
+  test('adds missing closing braces', () => {
+    assert.equal(balanceStructures('{"a":1'), '{"a":1}');
+    assert.equal(balanceStructures('{"a":{"b":1'), '{"a":{"b":1}}');
+  });
+
+  test('adds missing closing brackets', () => {
+    assert.equal(balanceStructures('[1,2,3'), '[1,2,3]');
+    assert.equal(balanceStructures('[[1,2'), '[[1,2]]');
+  });
+
+  test('adds both missing brackets and braces', () => {
+    assert.equal(balanceStructures('{"a":[1,2'), '{"a":[1,2]}');
+  });
+
+  test('does not touch balanced input', () => {
+    assert.equal(balanceStructures('{"a":1}'), '{"a":1}');
+    assert.equal(balanceStructures('[1,2,3]'), '[1,2,3]');
+    assert.equal(balanceStructures(''), '');
+  });
+
+  test('does not remove characters when overclosed', () => {
+    // If there are more closers than openers, don't touch it.
+    assert.equal(balanceStructures('1,2]'), '1,2]');
+    assert.equal(balanceStructures('a}'), 'a}');
+  });
+});
+
+describe('repairInvalidEscapes', () => {
+  test('escapes invalid escape sequences inside strings', () => {
+    assert.equal(
+      repairInvalidEscapes(String.raw`{"path":"c:\Users\App.tsx"}`),
+      String.raw`{"path":"c:\\Users\\App.tsx"}`
+    );
+  });
+
+  test('preserves valid escape sequences', () => {
+    const valid = String.raw`{"a":"line\nbreak","b":"quote\"q","c":"back\\slash","d":"tab\t"}`;
+    assert.equal(repairInvalidEscapes(valid), valid);
+  });
+
+  test('preserves valid unicode escapes, fixes invalid ones', () => {
+    const valid = String.raw`{"a":"\u00e9"}`;
+    assert.equal(repairInvalidEscapes(valid), valid);
+    assert.equal(
+      repairInvalidEscapes(String.raw`{"a":"\utils"}`),
+      String.raw`{"a":"\\utils"}`
+    );
+  });
+
+  test('escapes a lone trailing backslash from a truncated stream', () => {
+    assert.equal(repairInvalidEscapes('{"path":"c:\\'), '{"path":"c:\\\\');
+  });
+
+  test('leaves backslashes outside string literals alone', () => {
+    assert.equal(repairInvalidEscapes(String.raw`\{"a":1}`), String.raw`\{"a":1}`);
+  });
+
+  test('leaves already-valid JSON unchanged', () => {
+    const input = '{"query":"hello","n":3}';
+    assert.equal(repairInvalidEscapes(input), input);
+  });
+});
+
+describe('tryRepairJson', () => {
+  test('returns {} for empty / whitespace-only input', () => {
+    assert.deepEqual(tryRepairJson(''), {});
+    assert.deepEqual(tryRepairJson('   '), {});
+    assert.deepEqual(tryRepairJson('\n\t'), {});
+  });
+
+  test('parses valid JSON directly', () => {
+    assert.deepEqual(tryRepairJson('{"a":1}'), { a: 1 });
+    assert.deepEqual(tryRepairJson('[1,2,3]'), [1, 2, 3]);
+    assert.deepEqual(tryRepairJson('"hello"'), 'hello');
+    assert.deepEqual(tryRepairJson('null'), null);
+    assert.deepEqual(tryRepairJson('true'), true);
+  });
+
+  test('repairs truncated object', () => {
+    assert.deepEqual(tryRepairJson('{"a":1,"b":2'), { a: 1, b: 2 });
+  });
+
+  test('repairs truncated nested object', () => {
+    assert.deepEqual(tryRepairJson('{"a":{"b":{"c":1'), { a: { b: { c: 1 } } });
+  });
+
+  test('repairs truncated array', () => {
+    assert.deepEqual(tryRepairJson('[1,2,3'), [1, 2, 3]);
+  });
+
+  test('repairs trailing comma in object', () => {
+    assert.deepEqual(tryRepairJson('{"a":1,}'), { a: 1 });
+  });
+
+  test('repairs trailing comma in array', () => {
+    assert.deepEqual(tryRepairJson('[1,2,3,]'), [1, 2, 3]);
+  });
+
+  test('repairs unclosed string', () => {
+    // "hello -> "hello"
+    assert.deepEqual(tryRepairJson('{"msg":"hello'), { msg: 'hello' });
+  });
+
+  test('repairs unclosed string with trailing comma and brace', () => {
+    assert.deepEqual(tryRepairJson('{"a":"x","b":"yy'), { a: 'x', b: 'yy' });
+  });
+
+  test('returns null when repair ultimately fails', () => {
+    const messages: string[] = [];
+    const result = tryRepairJson('this is not JSON at all !!!', (m) => messages.push(m));
+    assert.equal(result, null);
+    assert.ok(messages.some((m) => m.includes('JSON repair failed')));
+    assert.ok(messages.some((m) => m.includes('Repaired attempt')));
+  });
+
+  test('does not call logger on success', () => {
+    const messages: string[] = [];
+    tryRepairJson('{"a":1}', (m) => messages.push(m));
+    assert.equal(messages.length, 0);
+  });
+
+  test('does not call logger when repair succeeds', () => {
+    const messages: string[] = [];
+    tryRepairJson('{"a":1', (m) => messages.push(m));
+    assert.equal(messages.length, 0);
+  });
+
+  test('repairs unescaped Windows path in tool args (issue #70)', () => {
+    const input = String.raw`{"filePath": "c:\Users\sasha\Desktop\interviewSelf1\src\App.tsx", "startLine": 1, "endLine": 1}`;
+    assert.deepEqual(tryRepairJson(input), {
+      filePath: 'c:\\Users\\sasha\\Desktop\\interviewSelf1\\src\\App.tsx',
+      startLine: 1,
+      endLine: 1,
+    });
+  });
+
+  test('repairs unescaped Windows path in truncated args', () => {
+    const input = String.raw`{"filePath": "c:\Users\sasha\src\App.tsx`;
+    assert.deepEqual(tryRepairJson(input), {
+      filePath: 'c:\\Users\\sasha\\src\\App.tsx',
+    });
+  });
+
+  test('does not mangle correctly escaped paths', () => {
+    const input = String.raw`{"filePath": "c:\\Users\\sasha\\src\\App.tsx"}`;
+    assert.deepEqual(tryRepairJson(input), {
+      filePath: 'c:\\Users\\sasha\\src\\App.tsx',
+    });
+  });
+
+  test('handles complex realistic tool call args', () => {
+    const input = '{"query":"hello world","options":{"limit":10,"filters":[{"type":"date"';
+    const result = tryRepairJson(input) as Record<string, unknown>;
+    assert.equal(result.query, 'hello world');
+    assert.deepEqual((result.options as Record<string, unknown>).limit, 10);
+  });
+});

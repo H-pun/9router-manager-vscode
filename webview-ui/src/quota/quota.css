@@ -1,0 +1,543 @@
+/* Ported from 9router-vscode/src/views/quotaWebviewHtml.ts (Quota Tracker v1.6). */
+:root {
+  --bg: var(--vscode-sideBar-background);
+  --fg: var(--vscode-sideBar-foreground, var(--vscode-foreground));
+  --hover-bg: var(--vscode-list-hoverBackground);
+  --btn-hover-bg: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+  --text-muted: var(--vscode-descriptionForeground);
+  --border: var(--vscode-tree-indentGuidesStroke, rgba(128, 128, 128, 0.22));
+  --green: var(--vscode-charts-green, #388a34);
+  --orange: var(--vscode-charts-orange, #d18616);
+  --red: var(--vscode-charts-red, #f14c4c);
+  --blue: #38bdf8;
+  --font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
+  --font-size: var(--vscode-font-size, 13px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: var(--font-size);
+  line-height: 1.4;
+  padding: 4px 0 10px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.codicon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Action buttons */
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.08s, color 0.08s;
+  font-size: 13px;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--btn-hover-bg);
+  color: var(--fg);
+}
+
+.icon-btn:disabled {
+  cursor: wait;
+}
+
+.icon-btn:focus-visible,
+.toggle-switch-box:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+/* LEVEL 1: provider group */
+.provider-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2px;
+}
+
+.provider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  margin: 0 4px;
+  font-weight: 600;
+  min-height: 22px;
+  transition: background 0.08s;
+}
+
+.provider-header:hover {
+  background: var(--hover-bg);
+}
+
+.provider-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.provider-logo-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.provider-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.provider-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.count-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 9999px;
+  background: rgba(128, 128, 128, 0.15);
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.accounts-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 8px;
+}
+
+.accounts-container::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--border);
+}
+
+/* LEVEL 2: account row */
+.account-item {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1px;
+}
+
+.account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 6px 3px 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  margin: 0 4px;
+  min-height: 22px;
+  transition: background 0.08s;
+}
+
+.account-row:hover {
+  background: var(--hover-bg);
+}
+
+.account-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.account-name {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.pill-tag {
+  font-size: 9.5px;
+  font-weight: 500;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(128, 128, 128, 0.15);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.pill-tag.plan {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.85;
+}
+
+.account-row:hover .account-actions {
+  opacity: 1;
+}
+
+/* Toggle switch */
+.toggle-switch-box {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 2px;
+  margin-left: 2px;
+  border-radius: 8px;
+  transition: opacity 0.15s ease;
+}
+
+.toggle-switch-box.disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+.toggle-track {
+  width: 24px;
+  height: 13px;
+  border-radius: 7px;
+  background-color: rgba(128, 128, 128, 0.35);
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.toggle-track.active {
+  background-color: var(--green);
+}
+
+.toggle-thumb {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.toggle-track.active .toggle-thumb {
+  transform: translateX(11px);
+}
+
+/* LEVEL 3: model quota rows */
+.models-list {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 12px;
+}
+
+.models-list::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--border);
+}
+
+.model-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2.5px 6px 2.5px 16px;
+  margin: 0 4px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  min-height: 20px;
+  transition: background 0.08s;
+}
+
+.model-row:hover {
+  background: var(--hover-bg);
+}
+
+.model-row.dimmed {
+  opacity: 0.5;
+}
+
+/* Hide/show action: only visible on hover, keeps row width stable. */
+.row-action {
+  width: 16px;
+  height: 16px;
+  visibility: hidden;
+}
+
+.row-action .codicon {
+  font-size: 12px;
+}
+
+.model-row:hover .row-action,
+.row-action:focus-visible {
+  visibility: visible;
+}
+
+.hidden-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 10.5px;
+  padding: 2px 6px 2px 16px;
+  margin: 0 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hidden-toggle:hover {
+  color: var(--fg);
+}
+
+.hidden-toggle .codicon {
+  font-size: 12px;
+}
+
+.model-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+  padding-right: 8px;
+}
+
+.status-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.status-icon.green,
+.model-pct.green {
+  color: var(--green);
+}
+
+.status-icon.orange,
+.model-pct.orange {
+  color: var(--orange);
+}
+
+.status-icon.red,
+.model-pct.red {
+  color: var(--red);
+}
+
+.model-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg);
+}
+
+.model-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.model-pct {
+  font-weight: 600;
+  min-width: 28px;
+  text-align: right;
+}
+
+.model-ratio {
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+
+.v-divider {
+  width: 1px;
+  height: 9px;
+  background-color: var(--border);
+  opacity: 0.9;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.model-time {
+  color: var(--blue);
+  font-size: 10.5px;
+  min-width: 50px;
+  text-align: right;
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 6px 2.5px 16px;
+  margin: 0 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.note span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note.error {
+  color: var(--vscode-errorForeground, var(--red));
+}
+
+.empty-msg {
+  padding: 10px 14px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.models-list .empty-msg {
+  padding: 4px 14px;
+  text-align: left;
+}
+
+.empty-msg.error {
+  color: var(--vscode-errorForeground, var(--red));
+  font-style: normal;
+}
+
+/* Auth & disconnected banner */
+.auth-banner {
+  margin: 14px 10px;
+  padding: 16px 12px;
+  background: var(--vscode-editorWidget-background, #202020);
+  border: 1px solid var(--vscode-widget-border, var(--border));
+  border-radius: 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.auth-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.auth-server-tag {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  padding: 3px 6px;
+  background: rgba(128, 128, 128, 0.15);
+  border-radius: 4px;
+  color: var(--blue);
+  word-break: break-all;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 6px 12px;
+  background: var(--vscode-button-background, #007acc);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.1s;
+}
+
+.btn-primary:hover {
+  background: var(--vscode-button-hoverBackground, #0062a3);
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: 5px 10px;
+  background: var(--vscode-button-secondaryBackground, rgba(255, 255, 255, 0.08));
+  color: var(--vscode-button-secondaryForeground, var(--fg));
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-secondary:hover {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(255, 255, 255, 0.12));
+}

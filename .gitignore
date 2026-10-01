@@ -1,0 +1,7 @@
+reference
+node_modules
+out
+out-test
+webview-ui/dist
+*.vsix
+*.tsbuildinfo

@@ -1,0 +1,451 @@
+{
+  "name": "9router-extension",
+  "displayName": "9Router",
+  "description": "Manage your 9Router server from VS Code: sign in to the dashboard, manage API keys, sync Token Saver settings, and use 9Router models in GitHub Copilot Chat.",
+  "version": "0.6.0",
+  "publisher": "whitefall",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.125.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Other"
+  ],
+  "keywords": [
+    "9router",
+    "copilot",
+    "llm",
+    "router"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run build:prod && npm run build:webview",
+    "base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=es2022",
+    "build": "npm run base -- --sourcemap",
+    "build:prod": "npm run base -- --minify",
+    "watch": "npm run base -- --sourcemap --watch",
+    "build:webview": "npm --prefix webview-ui run build",
+    "typecheck": "tsc -p ./ --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test:build": "rm -rf out-test && tsc -p tsconfig.test.json",
+    "test:run": "node --test \"out-test/**/*.test.js\"",
+    "test": "npm run test:build && npm run test:run",
+    "package": "vsce package"
+  },
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "9router-extension",
+        "displayName": "9Router",
+        "managementCommand": "9router.openSettings"
+      }
+    ],
+    "commands": [
+      { "command": "9router.signIn", "title": "Sign In to Dashboard", "category": "9Router", "icon": "$(sign-in)" },
+      { "command": "9router.signOut", "title": "Sign Out", "category": "9Router", "icon": "$(sign-out)" },
+      { "command": "9router.testConnection", "title": "Test Connection", "category": "9Router" },
+      { "command": "9router.openSettings", "title": "Open Settings", "category": "9Router", "icon": "$(gear)" },
+      { "command": "9router.showMenu", "title": "Show Menu", "category": "9Router" },
+      { "command": "9router.showOutput", "title": "Show Output Log", "category": "9Router" },
+      { "command": "9router.syncTokenSaver", "title": "Sync Settings From Server", "category": "9Router" },
+      { "command": "9router.openApiKeySettings", "title": "Open API Key Settings", "category": "9Router" },
+      { "command": "9router.refreshApiKeys", "title": "Refresh API Keys", "category": "9Router" },
+      { "command": "9router.createApiKey", "title": "Create API Key", "category": "9Router" },
+      { "command": "9router.copyApiKey", "title": "Copy API Key", "category": "9Router" },
+      { "command": "9router.pickCopilotApiKey", "title": "Pick API Key for Copilot", "category": "9Router" },
+      { "command": "9router.refreshCopilotModels", "title": "Refresh Copilot Models", "category": "9Router" },
+      { "command": "9router.openQuotaTracker", "title": "Open Quota Tracker", "category": "9Router", "icon": "$(pulse)" },
+      { "command": "9router.refreshQuota", "title": "Refresh All Quotas", "category": "9Router", "icon": "$(refresh)" },
+      { "command": "9router.refreshQuotaLoading", "title": "Refreshing…", "category": "9Router", "icon": "$(loading~spin)" },
+      { "command": "9router.quota.filterActive", "title": "Active Accounts", "category": "9Router" },
+      { "command": "9router.quota.filterAll", "title": "All Accounts", "category": "9Router" },
+      { "command": "9router.quota.filterInactive", "title": "Inactive / Turned Off", "category": "9Router" },
+      { "command": "9router.openDashboard", "title": "Open Web Dashboard", "category": "9Router", "icon": "$(globe)" },
+      { "command": "9router.openUsage", "title": "Open Usage (Topology)", "category": "9Router", "icon": "$(type-hierarchy)" },
+      { "command": "9router.refreshUsage", "title": "Refresh Usage", "category": "9Router", "icon": "$(refresh)" }
+    ],
+    "submenus": [
+      { "id": "9router.quota.filterMenu", "label": "Filter Accounts", "icon": "$(filter)" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "9router",
+          "title": "9Router",
+          "icon": "media/router-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "9router": [
+        {
+          "type": "webview",
+          "id": "9router.quota",
+          "name": "Quota Tracker"
+        },
+        {
+          "type": "webview",
+          "id": "9router.usage",
+          "name": "Usage"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        { "submenu": "9router.quota.filterMenu", "when": "view == 9router.quota && 9router.connected", "group": "navigation@1" },
+        { "command": "9router.refreshQuota", "when": "view == 9router.quota && 9router.connected && !9router.quota.refreshing", "group": "navigation@2" },
+        { "command": "9router.refreshQuotaLoading", "when": "view == 9router.quota && 9router.connected && 9router.quota.refreshing", "group": "navigation@2" },
+        { "command": "9router.openSettings", "when": "view == 9router.quota", "group": "navigation@3" },
+        { "command": "9router.openDashboard", "when": "view == 9router.quota", "group": "navigation@4" },
+        { "command": "9router.signOut", "when": "view == 9router.quota && 9router.connected", "group": "overflow" },
+        { "command": "9router.refreshUsage", "when": "view == 9router.usage && 9router.connected", "group": "navigation@1" },
+        { "command": "9router.openDashboard", "when": "view == 9router.usage", "group": "navigation@2" }
+      ],
+      "9router.quota.filterMenu": [
+        { "command": "9router.quota.filterActive", "group": "1_filter@1" },
+        { "command": "9router.quota.filterAll", "group": "1_filter@2" },
+        { "command": "9router.quota.filterInactive", "group": "1_filter@3" }
+      ],
+      "commandPalette": [
+        { "command": "9router.refreshQuotaLoading", "when": "false" },
+        { "command": "9router.signOut", "when": "9router.connected" },
+        { "command": "9router.syncTokenSaver", "when": "9router.connected" }
+      ]
+    },
+    "configuration": [
+      {
+        "id": "9router.connection",
+        "title": "Connection",
+        "order": 1,
+        "properties": {
+          "9router.connection.serverUrl": {
+            "type": "string",
+            "default": "http://localhost:20128",
+            "format": "uri",
+            "scope": "application",
+            "order": 1,
+            "markdownDescription": "Base URL of your 9Router server (local or remote), without `/v1` or `/dashboard`. Examples: `http://localhost:20128`, `https://router.example.com`.\n\n[Sign in](command:9router.signIn) · [Test connection](command:9router.testConnection) · [Sign out](command:9router.signOut)\n\nThe dashboard password is stored in VS Code Secret Storage, never in settings."
+          },
+          "9router.connection.autoConnect": {
+            "type": "boolean",
+            "default": true,
+            "scope": "application",
+            "order": 2,
+            "description": "Automatically sign in with the stored password on startup and when the server URL changes."
+          },
+          "9router.connection.requestTimeout": {
+            "type": "number",
+            "default": 15000,
+            "minimum": 1000,
+            "scope": "application",
+            "order": 3,
+            "description": "Timeout (ms) for dashboard API requests."
+          },
+          "9router.connection.syncInterval": {
+            "type": "number",
+            "default": 60,
+            "minimum": 0,
+            "scope": "application",
+            "order": 4,
+            "description": "How often (seconds) to pull server-side settings and API keys while connected. Also refreshed when the VS Code window regains focus. 0 disables periodic sync."
+          }
+        }
+      },
+      {
+        "id": "9router.apiKeys",
+        "title": "API Keys",
+        "order": 2,
+        "properties": {
+          "9router.apiKeys.keys": {
+            "type": "object",
+            "default": {},
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "scope": "application",
+            "order": 1,
+            "markdownDescription": "API keys on the connected 9Router server — **synced both ways**. Item = key name, Value = active (`true`) / disabled (`false`).\n\n- **Add Item** → creates a new key on the server\n- **Edit value** → enables / disables the key\n- **Remove item** → deletes the key (asks for confirmation)\n\nKey values are never stored in settings. [Copy a key](command:9router.copyApiKey) · [Use a key for Copilot](command:9router.pickCopilotApiKey) · [Refresh from server](command:9router.refreshApiKeys)"
+          }
+        }
+      },
+      {
+        "id": "9router.quota",
+        "title": "Quota Tracker",
+        "order": 3,
+        "properties": {
+          "9router.quota.autoRefreshInterval": {
+            "type": "number",
+            "default": 300,
+            "minimum": 0,
+            "scope": "application",
+            "order": 1,
+            "markdownDescription": "Seconds between automatic quota refreshes while the Quota Tracker is open (minimum 30). `0` disables auto-refresh.\n\n[$(pulse) Open Quota Tracker](command:9router.openQuotaTracker)"
+          },
+          "9router.quota.filter": {
+            "type": "string",
+            "default": "active",
+            "enum": ["active", "all", "inactive"],
+            "enumDescriptions": ["Only accounts that are on", "All accounts", "Only accounts that are turned off"],
+            "scope": "application",
+            "order": 2,
+            "description": "Which accounts the Quota Tracker shows (also switchable from the view's filter menu)."
+          },
+          "9router.quota.fetchInactiveAccounts": {
+            "type": "boolean",
+            "default": false,
+            "scope": "application",
+            "order": 2,
+            "description": "Also fetch quota for accounts that are turned off (uses the provider's usage API for those accounts too)."
+          }
+        }
+      },
+      {
+        "id": "9router.tokenSaver",
+        "title": "Token Saver",
+        "order": 4,
+        "properties": {
+          "9router.tokenSaver.rtk": {
+            "type": "boolean",
+            "default": true,
+            "scope": "application",
+            "order": 1,
+            "markdownDescription": "**RTK** — compress tool results (logs, diffs, listings) in outgoing requests. Applied on the 9Router server.\n\nToken Saver settings are synced both ways with the connected server. [Pull from server](command:9router.syncTokenSaver)"
+          },
+          "9router.tokenSaver.caveman": {
+            "type": "boolean",
+            "default": false,
+            "scope": "application",
+            "order": 2,
+            "markdownDescription": "**Caveman** — inject a system prompt that makes the model answer tersely to save output tokens."
+          },
+          "9router.tokenSaver.cavemanLevel": {
+            "type": "string",
+            "default": "full",
+            "enum": ["lite", "full", "ultra", "wenyan-lite", "wenyan", "wenyan-ultra"],
+            "enumDescriptions": [
+              "Lite — drop filler, keep grammar",
+              "Full — drop articles, fragments OK",
+              "Ultra — telegraphic, max compression",
+              "文 Lite — classical Chinese, light compression",
+              "文 Full — maximum 文言文, 80-90% reduction",
+              "文 Ultra — extreme classical compression"
+            ],
+            "scope": "application",
+            "order": 3,
+            "description": "Caveman compression level."
+          },
+          "9router.tokenSaver.ponytail": {
+            "type": "boolean",
+            "default": false,
+            "scope": "application",
+            "order": 4,
+            "markdownDescription": "**Ponytail** — inject a system prompt that biases the model toward minimal code."
+          },
+          "9router.tokenSaver.ponytailLevel": {
+            "type": "string",
+            "default": "full",
+            "enum": ["lite", "full", "ultra"],
+            "scope": "application",
+            "order": 5,
+            "description": "Ponytail intensity level."
+          },
+          "9router.tokenSaver.headroom": {
+            "type": "boolean",
+            "default": false,
+            "scope": "application",
+            "order": 6,
+            "markdownDescription": "**Headroom** — route requests through an external Headroom compression proxy (must be installed/running on the server)."
+          },
+          "9router.tokenSaver.headroomUrl": {
+            "type": "string",
+            "default": "http://localhost:8787",
+            "scope": "application",
+            "order": 7,
+            "description": "Headroom proxy URL, as seen from the 9Router server."
+          },
+          "9router.tokenSaver.pxpipe": {
+            "type": "boolean",
+            "default": false,
+            "scope": "application",
+            "order": 8,
+            "markdownDescription": "**pxpipe** — compress very large prompts (must be installed on the server)."
+          }
+        }
+      },
+      {
+        "id": "9router.copilot",
+        "title": "Copilot",
+        "order": 5,
+        "properties": {
+          "9router.copilot.enabled": {
+            "type": "boolean",
+            "default": true,
+            "scope": "application",
+            "order": 1,
+            "markdownDescription": "Expose 9Router models in the GitHub Copilot Chat model picker."
+          },
+          "9router.copilot.apiKey": {
+            "type": "string",
+            "default": "",
+            "scope": "application",
+            "order": 2,
+            "markdownDescription": "Name of the API key (from `#9router.apiKeys.keys#`) that Copilot uses. Type a key name, or [pick one from the server](command:9router.pickCopilotApiKey). The key value is resolved from the server and cached in Secret Storage.\n\n[Refresh models](command:9router.refreshCopilotModels)"
+          },
+          "9router.copilot.requestTimeout": {
+            "type": "number",
+            "default": 60000,
+            "minimum": 1,
+            "scope": "application",
+            "order": 3,
+            "description": "Timeout (ms) for chat requests."
+          },
+          "9router.copilot.defaultMaxTokens": {
+            "type": "number",
+            "default": 262144,
+            "scope": "application",
+            "order": 4,
+            "description": "Fallback context window (input tokens) when the server does not report it."
+          },
+          "9router.copilot.defaultMaxOutputTokens": {
+            "type": "number",
+            "default": 4096,
+            "scope": "application",
+            "order": 5,
+            "description": "Fallback maximum output tokens when the server does not report it."
+          },
+          "9router.copilot.enableToolCalling": {
+            "type": "boolean",
+            "default": true,
+            "scope": "application",
+            "order": 6,
+            "description": "Enable tool calling (agent mode) for 9Router models."
+          },
+          "9router.copilot.parallelToolCalling": {
+            "type": "boolean",
+            "default": true,
+            "scope": "application",
+            "order": 7,
+            "description": "Allow models to call multiple tools in parallel."
+          },
+          "9router.copilot.enableImageInput": {
+            "type": "boolean",
+            "default": true,
+            "scope": "application",
+            "order": 8,
+            "description": "Enable image input for models that support it."
+          },
+          "9router.copilot.agentTemperature": {
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 2,
+            "scope": "application",
+            "order": 9,
+            "description": "Fallback temperature for agent/tool-calling requests."
+          },
+          "9router.copilot.extraModelOptions": {
+            "type": "object",
+            "default": {},
+            "additionalProperties": true,
+            "scope": "application",
+            "order": 10,
+            "description": "Extra parameters merged into every chat-completions request (e.g. top_k, seed). Edit in settings.json."
+          },
+          "9router.copilot.perModelOptions": {
+            "type": "object",
+            "default": {},
+            "additionalProperties": { "type": "object", "additionalProperties": true },
+            "scope": "application",
+            "order": 11,
+            "markdownDescription": "Per-model request parameters keyed by model id or `*` wildcard, e.g. `{ \"cc/claude*\": { \"temperature\": 0.3 } }`. Edit in settings.json."
+          },
+          "9router.copilot.modelContextWindows": {
+            "type": "object",
+            "default": {},
+            "additionalProperties": { "type": "number" },
+            "scope": "application",
+            "order": 12,
+            "markdownDescription": "Per-model context window override (total tokens), keyed by model id or `*` wildcard. Edit in settings.json."
+          },
+          "9router.copilot.verboseLogging": {
+            "type": "boolean",
+            "default": false,
+            "scope": "application",
+            "order": 13,
+            "description": "Log full chat request bodies to the output channel (may contain conversation content)."
+          },
+          "9router.copilot.inlineCompletion.enabled": {
+            "type": "boolean",
+            "default": false,
+            "scope": "application",
+            "order": 20,
+            "markdownDescription": "Experimental. Inline (ghost-text) completions from 9Router via `/v1/completions`, running alongside GitHub Copilot. Requires a model that supports fill-in-the-middle."
+          },
+          "9router.copilot.inlineCompletion.model": {
+            "type": "string",
+            "default": "",
+            "scope": "application",
+            "order": 21,
+            "description": "Model id for inline completions. Blank = first model reported by the server."
+          },
+          "9router.copilot.inlineCompletion.maxTokens": {
+            "type": "number",
+            "default": 256,
+            "minimum": 1,
+            "scope": "application",
+            "order": 22,
+            "description": "Maximum tokens per inline completion."
+          },
+          "9router.copilot.inlineCompletion.debounce": {
+            "type": "number",
+            "default": 300,
+            "minimum": 0,
+            "scope": "application",
+            "order": 23,
+            "description": "Milliseconds to wait after the last keystroke before requesting a completion."
+          },
+          "9router.copilot.inlineCompletion.timeout": {
+            "type": "number",
+            "default": 3000,
+            "minimum": 1,
+            "scope": "application",
+            "order": 24,
+            "description": "Per-request timeout (ms) for inline completions."
+          },
+          "9router.copilot.inlineCompletion.maxPrefixChars": {
+            "type": "number",
+            "default": 4000,
+            "minimum": 1,
+            "scope": "application",
+            "order": 25,
+            "description": "Max characters before the cursor sent as context."
+          },
+          "9router.copilot.inlineCompletion.maxSuffixChars": {
+            "type": "number",
+            "default": 1000,
+            "minimum": 1,
+            "scope": "application",
+            "order": 26,
+            "description": "Max characters after the cursor sent as context."
+          }
+        }
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.125.0",
+    "@typescript-eslint/eslint-plugin": "^8.30.0",
+    "@typescript-eslint/parser": "^8.30.0",
+    "@vscode/vsce": "^3.3.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.25.0",
+    "typescript": "^5.8.0"
+  }
+}

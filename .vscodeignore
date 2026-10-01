@@ -1,0 +1,13 @@
+reference/**
+src/**
+out-test/**
+webview-ui/**
+!webview-ui/dist/**
+node_modules/**
+**/*.map
+**/*.ts
+tsconfig*.json
+eslint.config.mjs
+.vscode/**
+.gitignore
+*.vsix
