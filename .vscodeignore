@@ -1,4 +1,5 @@
 reference/**
+.github/**
 src/**
 out-test/**
 webview-ui/**

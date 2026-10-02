@@ -2,10 +2,14 @@
   "name": "9router-extension",
   "displayName": "9Router",
   "description": "Manage your 9Router server from VS Code: sign in to the dashboard, manage API keys, sync Token Saver settings, and use 9Router models in GitHub Copilot Chat.",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "publisher": "whitefall",
   "private": true,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/H-pun/9router-manager-vscode.git"
+  },
   "engines": {
     "vscode": "^1.125.0"
   },
@@ -218,42 +222,32 @@
             "markdownDescription": "**RTK** — compress tool results (logs, diffs, listings) in outgoing requests. Applied on the 9Router server.\n\nToken Saver settings are synced both ways with the connected server. [Pull from server](command:9router.syncTokenSaver)"
           },
           "9router.tokenSaver.caveman": {
-            "type": "boolean",
-            "default": false,
-            "scope": "application",
-            "order": 2,
-            "markdownDescription": "**Caveman** — inject a system prompt that makes the model answer tersely to save output tokens."
-          },
-          "9router.tokenSaver.cavemanLevel": {
             "type": "string",
-            "default": "full",
-            "enum": ["lite", "full", "ultra", "wenyan-lite", "wenyan", "wenyan-ultra"],
+            "default": "off",
+            "enum": ["off", "lite", "full", "ultra"],
             "enumDescriptions": [
+              "Off — disabled",
               "Lite — drop filler, keep grammar",
               "Full — drop articles, fragments OK",
-              "Ultra — telegraphic, max compression",
-              "文 Lite — classical Chinese, light compression",
-              "文 Full — maximum 文言文, 80-90% reduction",
-              "文 Ultra — extreme classical compression"
+              "Ultra — telegraphic, max compression"
             ],
             "scope": "application",
-            "order": 3,
-            "description": "Caveman compression level."
+            "order": 2,
+            "markdownDescription": "**Caveman** — inject a system prompt that makes the model answer tersely to save output tokens. Pick a compression level, or `off` to disable."
           },
           "9router.tokenSaver.ponytail": {
-            "type": "boolean",
-            "default": false,
+            "type": "string",
+            "default": "off",
+            "enum": ["off", "lite", "full", "ultra"],
+            "enumDescriptions": [
+              "Off — disabled",
+              "Lite",
+              "Full",
+              "Ultra"
+            ],
             "scope": "application",
             "order": 4,
-            "markdownDescription": "**Ponytail** — inject a system prompt that biases the model toward minimal code."
-          },
-          "9router.tokenSaver.ponytailLevel": {
-            "type": "string",
-            "default": "full",
-            "enum": ["lite", "full", "ultra"],
-            "scope": "application",
-            "order": 5,
-            "description": "Ponytail intensity level."
+            "markdownDescription": "**Ponytail** — inject a system prompt that biases the model toward minimal code. Pick an intensity level, or `off` to disable."
           },
           "9router.tokenSaver.headroom": {
             "type": "boolean",
